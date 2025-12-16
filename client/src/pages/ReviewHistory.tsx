@@ -1,16 +1,19 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Copy, Download, Trash2 } from "lucide-react";
+import { Loader2, Copy, Download, Trash2, Edit2, Save, X } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Streamdown } from "streamdown";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function ReviewHistory() {
   const { user } = useAuth();
   const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedReview, setEditedReview] = useState("");
 
   // 取得評語列表
   const { data: reviews, isLoading, refetch } = trpc.review.list.useQuery();
@@ -24,6 +27,18 @@ export default function ReviewHistory() {
     },
     onError: (error) => {
       toast.error(`刪除失敗: ${error.message}`);
+    },
+  });
+
+  // 更新評語
+  const updateMutation = trpc.review.update.useMutation({
+    onSuccess: () => {
+      toast.success("評語已更新");
+      setIsEditing(false);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(`更新失敗: ${error.message}`);
     },
   });
 
@@ -49,6 +64,24 @@ export default function ReviewHistory() {
     if (confirm("確定要刪除這份評語嗎？")) {
       deleteMutation.mutate({ id: reviewId });
     }
+  };
+
+  const handleEditReview = () => {
+    if (selectedReview) {
+      setEditedReview(selectedReview.generatedReview);
+      setIsEditing(true);
+    }
+  };
+
+  const handleSaveReview = () => {
+    if (selectedReview && editedReview.trim()) {
+      updateMutation.mutate({ id: selectedReview.id, generatedReview: editedReview });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedReview("");
   };
 
   if (isLoading) {
@@ -94,7 +127,10 @@ export default function ReviewHistory() {
                   {reviews.map((review) => (
                     <button
                       key={review.id}
-                      onClick={() => setSelectedReviewId(review.id)}
+                      onClick={() => {
+                        setSelectedReviewId(review.id);
+                        setIsEditing(false);
+                      }}
                       className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
                         selectedReviewId === review.id
                           ? "border-accent bg-accent/10"
@@ -142,7 +178,7 @@ export default function ReviewHistory() {
                       </div>
 
                       <div>
-                        <h4 className="font-semibold text-sm mb-2">需要改進的地方</h4>
+                        <h4 className="font-semibold text-sm mb-2">待繌進步的地方</h4>
                         <div className="flex flex-wrap gap-2">
                           {JSON.parse(selectedReview.weaknesses).map(
                             (weakness: string, index: number) => (
@@ -157,7 +193,7 @@ export default function ReviewHistory() {
                       <div>
                         <h4 className="font-semibold text-sm mb-2">令人印象深刻的地方</h4>
                         <p className="text-sm text-muted-foreground">
-                          {selectedReview.impressivePoints}
+                          {selectedReview.impressivePoints || "（未提供）"}
                         </p>
                       </div>
 
@@ -178,13 +214,38 @@ export default function ReviewHistory() {
                     {/* 生成的評語 */}
                     <div className="border-t pt-4">
                       <h4 className="font-semibold text-sm mb-2">生成的評語</h4>
-                      <div className="prose prose-sm max-w-none bg-card p-4 rounded-lg">
-                        <Streamdown>{selectedReview.generatedReview}</Streamdown>
-                      </div>
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <Textarea
+                            value={editedReview}
+                            onChange={(e) => setEditedReview(e.target.value)}
+                            className="min-h-32"
+                            placeholder="編輯評語..."
+                          />
+                          <div className="bg-accent/10 p-3 rounded-md">
+                            <p className="text-sm text-muted-foreground">
+                              <span className="font-semibold">字數統計：</span>
+                              <span className="text-foreground font-bold">{editedReview.length}</span> 字
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="prose prose-sm max-w-none bg-card p-4 rounded-lg mb-3">
+                            <Streamdown>{selectedReview.generatedReview}</Streamdown>
+                          </div>
+                          <div className="bg-accent/10 p-3 rounded-md">
+                            <p className="text-sm text-muted-foreground">
+                              <span className="font-semibold">字數統計：</span>
+                              <span className="text-foreground font-bold">{selectedReview.generatedReview.length}</span> 字
+                            </p>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* 引用的名言 */}
-                    {JSON.parse(selectedReview.usedQuotes).length > 0 && (
+                    {!isEditing && JSON.parse(selectedReview.usedQuotes).length > 0 && (
                       <div className="border-t pt-4">
                         <h4 className="font-semibold text-sm mb-2">引用的名言</h4>
                         <div className="space-y-2">
@@ -202,39 +263,75 @@ export default function ReviewHistory() {
 
                     {/* 操作按鈕 */}
                     <div className="flex gap-2 pt-4 border-t">
-                      <Button
-                        onClick={() => handleCopyReview(selectedReview.generatedReview)}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                      >
-                        <Copy className="w-4 h-4 mr-1" />
-                        複製
-                      </Button>
-                      <Button
-                        onClick={() =>
-                          handleDownloadReview(
-                            selectedReview.studentName,
-                            selectedReview.generatedReview
-                          )
-                        }
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                      >
-                        <Download className="w-4 h-4 mr-1" />
-                        下載
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteReview(selectedReview.id)}
-                        variant="destructive"
-                        size="sm"
-                        className="flex-1"
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        刪除
-                      </Button>
+                      {isEditing ? (
+                        <>
+                          <Button
+                            onClick={handleSaveReview}
+                            variant="default"
+                            size="sm"
+                            className="flex-1"
+                            disabled={updateMutation.isPending}
+                          >
+                            <Save className="w-4 h-4 mr-1" />
+                            保存
+                          </Button>
+                          <Button
+                            onClick={handleCancelEdit}
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            disabled={updateMutation.isPending}
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            取消
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            onClick={handleEditReview}
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                          >
+                            <Edit2 className="w-4 h-4 mr-1" />
+                            編輯
+                          </Button>
+                          <Button
+                            onClick={() => handleCopyReview(selectedReview.generatedReview)}
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                          >
+                            <Copy className="w-4 h-4 mr-1" />
+                            複製
+                          </Button>
+                          <Button
+                            onClick={() =>
+                              handleDownloadReview(
+                                selectedReview.studentName,
+                                selectedReview.generatedReview
+                              )
+                            }
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                          >
+                            <Download className="w-4 h-4 mr-1" />
+                            下載
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteReview(selectedReview.id)}
+                            variant="destructive"
+                            size="sm"
+                            className="flex-1"
+                            disabled={deleteMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            刪除
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

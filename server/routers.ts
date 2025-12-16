@@ -41,6 +41,21 @@ export const appRouter = router({
         return review;
       }),
 
+    // 更新評語
+    update: protectedProcedure
+      .input(z.object({ id: z.number(), generatedReview: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        const review = await db.getReviewById(input.id);
+        if (!review || review.userId !== ctx.user.id) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "評語不存在",
+          });
+        }
+        await db.updateReview(input.id, input.generatedReview);
+        return { success: true };
+      }),
+
     // 删除評語
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))

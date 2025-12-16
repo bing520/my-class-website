@@ -142,7 +142,20 @@ export async function createReview(review: InsertReview) {
 }
 
 /**
- * 删除評語記錄
+ * 更新評語記錄
+ */
+export async function updateReview(reviewId: number, generatedReview: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(reviews)
+    .set({ generatedReview, updatedAt: new Date() })
+    .where(eq(reviews.id, reviewId));
+}
+
+/**
+ * 刪除評語記錄
  */
 export async function deleteReview(reviewId: number) {
   const db = await getDb();
