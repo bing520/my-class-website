@@ -243,8 +243,8 @@ export default function ReviewGenerator() {
             {/* 缺點 */}
             <Card>
               <CardHeader>
-                <CardTitle>需要改進的地方</CardTitle>
-                <CardDescription>選擇或輸入學生需要改進的地方（可多選）</CardDescription>
+                <CardTitle>待繌進步的地方</CardTitle>
+                <CardDescription>選擇或輸入學生可以繌續加強的領域（可多選）</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2">
@@ -261,7 +261,7 @@ export default function ReviewGenerator() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>預設缺點</Label>
+                  <Label>預設選項</Label>
                   <div className="flex flex-wrap gap-2">
                     {options?.weaknesses.map((weakness) => (
                       <Badge
@@ -285,7 +285,7 @@ export default function ReviewGenerator() {
 
                 <div className="flex gap-2">
                   <Input
-                    placeholder="輸入自訂缺點"
+                    placeholder="輸入自訂選項"
                     value={customWeakness}
                     onChange={(e) => setCustomWeakness(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && handleAddWeakness()}
