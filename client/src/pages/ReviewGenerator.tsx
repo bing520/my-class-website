@@ -243,7 +243,7 @@ export default function ReviewGenerator() {
             {/* 缺點 */}
             <Card>
               <CardHeader>
-                <CardTitle>待繌進步的地方</CardTitle>
+                <CardTitle>可以改進的地方</CardTitle>
                 <CardDescription>選擇或輸入學生可以繌續加強的領域（可多選）</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

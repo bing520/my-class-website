@@ -178,7 +178,7 @@ export default function ReviewHistory() {
                       </div>
 
                       <div>
-                        <h4 className="font-semibold text-sm mb-2">待繌進步的地方</h4>
+                        <h4 className="font-semibold text-sm mb-2">可以改進的地方</h4>
                         <div className="flex flex-wrap gap-2">
                           {JSON.parse(selectedReview.weaknesses).map(
                             (weakness: string, index: number) => (

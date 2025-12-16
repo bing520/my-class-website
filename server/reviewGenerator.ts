@@ -85,7 +85,7 @@ function buildPrompt(input: ReviewGenerationInput, quotes: Quote[]): string {
 正向特質：
 ${input.positiveTraits.map((t) => `- ${t}`).join("\n")}
 
-需要改進的地方：
+可以改進的地方：
 ${input.weaknesses.map((w) => `- ${w}`).join("\n")}${impressivePointsText}
 
 建議：
