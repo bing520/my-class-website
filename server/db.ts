@@ -1,6 +1,15 @@
-import { eq } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import {
+  InsertUser,
+  users,
+  reviews,
+  InsertReview,
+  positiveTraitOptions,
+  weaknessOptions,
+  suggestionOptions,
+  quotes,
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +98,143 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * 取得特定使用者的所有評語記錄
+ */
+export async function getUserReviews(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(reviews)
+    .where(eq(reviews.userId, userId))
+    .orderBy(desc(reviews.createdAt));
+}
+
+/**
+ * 取得特定評語記錄
+ */
+export async function getReviewById(reviewId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select()
+    .from(reviews)
+    .where(eq(reviews.id, reviewId))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/**
+ * 建立新的評語記錄
+ */
+export async function createReview(review: InsertReview) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(reviews).values(review);
+  // 取得最後插入的記錄的 ID
+  const created = await db.select().from(reviews).orderBy(desc(reviews.id)).limit(1);
+  return created[0]?.id || 0;
+}
+
+/**
+ * 删除評語記錄
+ */
+export async function deleteReview(reviewId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(reviews).where(eq(reviews.id, reviewId));
+}
+
+/**
+ * 取得所有預設正向特質選項
+ */
+export async function getDefaultPositiveTraits() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(positiveTraitOptions)
+    .where(eq(positiveTraitOptions.isDefault, 1));
+}
+
+/**
+ * 取得使用者的自訂正向特質選項
+ */
+export async function getUserPositiveTraits(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(positiveTraitOptions)
+    .where(eq(positiveTraitOptions.userId, userId));
+}
+
+/**
+ * 取得所有預設缺點選項
+ */
+export async function getDefaultWeaknesses() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(weaknessOptions)
+    .where(eq(weaknessOptions.isDefault, 1));
+}
+
+/**
+ * 取得使用者的自訂缺點選項
+ */
+export async function getUserWeaknesses(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(weaknessOptions)
+    .where(eq(weaknessOptions.userId, userId));
+}
+
+/**
+ * 取得所有預設建議選項
+ */
+export async function getDefaultSuggestions() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(suggestionOptions)
+    .where(eq(suggestionOptions.isDefault, 1));
+}
+
+/**
+ * 取得使用者的自訂建議選項
+ */
+export async function getUserSuggestions(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(suggestionOptions)
+    .where(eq(suggestionOptions.userId, userId));
+}
+
+/**
+ * 取得所有名言佳句
+ */
+export async function getAllQuotes() {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db.select().from(quotes);
+}
