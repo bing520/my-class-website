@@ -76,9 +76,9 @@ function buildPrompt(input: ReviewGenerationInput, quotes: Quote[]): string {
 
   const impressivePointsText = input.impressivePoints
     ? `\n\n令人印象深刻的地方：\n${input.impressivePoints}`
-    : "";
+    : "\n\n令人印象深刻的地方：\n（未提供，請根據學生的正向特質和建議推斷其可能的亮點）";
 
-  return `請為以下學生撰寫一份正向輔導性的評語。評語應控制在200字左右。
+  return `請為以下學生撰寫一份正向輔導性的評語。評語應控制在200字左右。即使未提供令人印象深刻的地方，也應根據正向特質和建議撰寫完整的評語。
 
 學生名稱：${input.studentName}
 
