@@ -74,9 +74,9 @@ export const appRouter = router({
       .input(
         z.object({
           studentName: z.string().min(1),
-          positiveTraits: z.array(z.string()),
+          positiveTraits: z.array(z.string()).min(1),
           weaknesses: z.array(z.string()),
-          impressivePoints: z.string().min(1),
+          impressivePoints: z.string().optional(),
           suggestions: z.array(z.string()),
         })
       )
@@ -90,7 +90,7 @@ export const appRouter = router({
           studentName: input.studentName,
           positiveTraits: JSON.stringify(input.positiveTraits),
           weaknesses: JSON.stringify(input.weaknesses),
-          impressivePoints: input.impressivePoints,
+          impressivePoints: input.impressivePoints || "",
           suggestions: JSON.stringify(input.suggestions),
           generatedReview: review,
           usedQuotes: JSON.stringify(usedQuotes),

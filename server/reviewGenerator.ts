@@ -11,7 +11,7 @@ export interface ReviewGenerationInput {
   studentName: string;
   positiveTraits: string[];
   weaknesses: string[];
-  impressivePoints: string;
+  impressivePoints?: string;
   suggestions: string[];
 }
 
