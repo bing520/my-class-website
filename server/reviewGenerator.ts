@@ -43,7 +43,7 @@ export async function generateStudentReview(
 2. 溫和地提出改進建議，鼓勵學生克服缺點
 3. 融入適當的名言佳句，增加評語的啟發性
 4. 結構清晰，邏輯連貫，語言簡潔易懂
-5. 長度適中（200-300字），適合家長和學生閱讀
+5. 長度控制在200字左右
 6. 避免使用過於複雜的詞彙，保持親切感`,
       },
       {
@@ -74,7 +74,11 @@ function buildPrompt(input: ReviewGenerationInput, quotes: Quote[]): string {
     .map((q) => `- "${q.text}" - ${q.author}`)
     .join("\n");
 
-  return `請為以下學生撰寫一份正向輔導性的評語：
+  const impressivePointsText = input.impressivePoints
+    ? `\n\n令人印象深刻的地方：\n${input.impressivePoints}`
+    : "";
+
+  return `請為以下學生撰寫一份正向輔導性的評語。評語應控制在200字左右。
 
 學生名稱：${input.studentName}
 
@@ -82,10 +86,7 @@ function buildPrompt(input: ReviewGenerationInput, quotes: Quote[]): string {
 ${input.positiveTraits.map((t) => `- ${t}`).join("\n")}
 
 需要改進的地方：
-${input.weaknesses.map((w) => `- ${w}`).join("\n")}
-
-令人印象深刻的地方：
-${input.impressivePoints}
+${input.weaknesses.map((w) => `- ${w}`).join("\n")}${impressivePointsText}
 
 建議：
 ${input.suggestions.map((s) => `- ${s}`).join("\n")}

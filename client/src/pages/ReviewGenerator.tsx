@@ -114,11 +114,6 @@ export default function ReviewGenerator() {
       return;
     }
 
-    if (!formData.impressivePoints.trim()) {
-      toast.error("請輸入令人印象深刻的地方");
-      return;
-    }
-
     generateMutation.mutate(formData);
   };
 
@@ -302,14 +297,15 @@ export default function ReviewGenerator() {
               </CardContent>
             </Card>
 
-            {/* 令人印象深刻之處 */}
+            {/* 令人印象深刻之處（可選） */}
             <Card>
               <CardHeader>
                 <CardTitle>令人印象深刻的地方</CardTitle>
+                <CardDescription>（可選）描述學生令人印象深刻的表現或成就</CardDescription>
               </CardHeader>
               <CardContent>
                 <Textarea
-                  placeholder="描述學生令人印象深刻的表現或成就"
+                  placeholder="描述學生令人印象深刻的表現或成就（可不填）"
                   value={formData.impressivePoints}
                   onChange={(e) =>
                     setFormData({ ...formData, impressivePoints: e.target.value })
