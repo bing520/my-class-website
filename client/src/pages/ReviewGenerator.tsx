@@ -403,6 +403,13 @@ export default function ReviewGenerator() {
                     <Streamdown>{generatedReview}</Streamdown>
                   </div>
 
+                  <div className="bg-accent/10 p-3 rounded-md">
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-semibold">字數統計：</span>
+                      <span className="text-foreground font-bold">{generatedReview.length}</span> 字
+                    </p>
+                  </div>
+
                   {usedQuotes.length > 0 && (
                     <div className="border-t pt-4">
                       <h4 className="font-semibold text-sm mb-2">引用的名言</h4>
