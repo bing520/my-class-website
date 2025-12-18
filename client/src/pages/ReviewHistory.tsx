@@ -1,156 +1,150 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Copy, Download, Trash2, Edit2, Save, X } from "lucide-react";
-import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
-import { useState } from "react";
-import { Streamdown } from "streamdown";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Textarea } from "@/components/ui/textarea";
+import { Trash2, Edit2, Check, X } from "lucide-react";
+import { toast } from "sonner";
+import { Streamdown } from "streamdown";
+
+interface Review {
+  id: string;
+  studentName: string;
+  positiveTraits: string[];
+  weaknesses: string[];
+  impressivePoints: string;
+  suggestions: string[];
+  review: string;
+  createdAt: number;
+}
 
 export default function ReviewHistory() {
-  const { user } = useAuth();
-  const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedReview, setEditedReview] = useState("");
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [selectedReview, setSelectedReview] = useState<Review | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
 
-  // 取得評語列表
-  const { data: reviews, isLoading, refetch } = trpc.review.list.useQuery();
+  // 從本地儲存載入評語
+  useEffect(() => {
+    const saved = localStorage.getItem("reviews");
+    if (saved) {
+      try {
+        setReviews(JSON.parse(saved));
+      } catch (error) {
+        console.error("載入評語失敗:", error);
+      }
+    }
+  }, []);
+
+  // 選擇評語
+  const handleSelectReview = (review: Review) => {
+    setSelectedReview(review);
+    setEditingId(null);
+  };
+
+  // 開始編輯
+  const handleStartEdit = (review: Review) => {
+    setEditingId(review.id);
+    setEditingText(review.review);
+  };
+
+  // 保存編輯
+  const handleSaveEdit = () => {
+    if (editingId && selectedReview) {
+      const updated = reviews.map((r) =>
+        r.id === editingId ? { ...r, review: editingText } : r
+      );
+      setReviews(updated);
+      localStorage.setItem("reviews", JSON.stringify(updated));
+      setSelectedReview({ ...selectedReview, review: editingText });
+      setEditingId(null);
+      toast.success("評語已更新");
+    }
+  };
+
+  // 取消編輯
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
 
   // 刪除評語
-  const deleteMutation = trpc.review.delete.useMutation({
-    onSuccess: () => {
-      toast.success("評語已刪除");
-      refetch();
-      setSelectedReviewId(null);
-    },
-    onError: (error) => {
-      toast.error(`刪除失敗: ${error.message}`);
-    },
-  });
-
-  // 更新評語
-  const updateMutation = trpc.review.update.useMutation({
-    onSuccess: () => {
-      toast.success("評語已更新");
-      setIsEditing(false);
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(`更新失敗: ${error.message}`);
-    },
-  });
-
-  const selectedReview = reviews?.find((r) => r.id === selectedReviewId);
-
-  const handleCopyReview = (review: string) => {
-    navigator.clipboard.writeText(review);
-    toast.success("已複製到剪貼板");
-  };
-
-  const handleDownloadReview = (studentName: string, review: string) => {
-    const element = document.createElement("a");
-    const file = new Blob([review], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
-    element.download = `${studentName}_評語.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    toast.success("已下載評語");
-  };
-
-  const handleDeleteReview = (reviewId: number) => {
-    if (confirm("確定要刪除這份評語嗎？")) {
-      deleteMutation.mutate({ id: reviewId });
+  const handleDeleteReview = (id: string) => {
+    const updated = reviews.filter((r) => r.id !== id);
+    setReviews(updated);
+    localStorage.setItem("reviews", JSON.stringify(updated));
+    if (selectedReview?.id === id) {
+      setSelectedReview(null);
     }
+    toast.success("評語已刪除");
   };
 
-  const handleEditReview = () => {
-    if (selectedReview) {
-      setEditedReview(selectedReview.generatedReview);
-      setIsEditing(true);
-    }
-  };
-
-  const handleSaveReview = () => {
-    if (selectedReview && editedReview.trim()) {
-      updateMutation.mutate({ id: selectedReview.id, generatedReview: editedReview });
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditedReview("");
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="animate-spin" />
-      </div>
-    );
-  }
+  // 計算字數
+  const wordCount = selectedReview ? selectedReview.review.length : 0;
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">評語歷史記錄</h1>
-          <p className="text-muted-foreground">
-            查看和管理之前生成的評語
+        {/* 頁面標題 */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
+            評語歷史記錄
+          </h1>
+          <p className="text-gray-600 text-lg">
+            查看、編輯和管理已生成的評語
           </p>
         </div>
 
-        {!reviews || reviews.length === 0 ? (
-          <Card>
-            <CardContent className="pt-12 pb-12">
-              <p className="text-center text-muted-foreground">
-                還沒有生成過評語。前往
-                <a href="/" className="text-accent hover:underline mx-1">
-                  評語生成器
-                </a>
-                開始創建。
+        {reviews.length === 0 ? (
+          <Card className="border-2 border-gray-300 shadow-lg">
+            <CardContent className="text-center py-12">
+              <p className="text-gray-500 text-lg mb-4">
+                還沒有生成任何評語
+              </p>
+              <p className="text-gray-400">
+                前往評語生成頁面生成第一份評語吧！
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* 評語列表 */}
+            {/* 左側：評語列表 */}
             <div className="lg:col-span-1">
-              <Card>
+              <Card className="border-2 border-gray-300 shadow-lg">
                 <CardHeader>
                   <CardTitle>評語列表</CardTitle>
-                  <CardDescription>{reviews.length} 份評語</CardDescription>
+                  <CardDescription>
+                    共 {reviews.length} 份評語
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2 max-h-96 overflow-y-auto">
-                  {reviews.map((review) => (
-                    <button
-                      key={review.id}
-                      onClick={() => {
-                        setSelectedReviewId(review.id);
-                        setIsEditing(false);
-                      }}
-                      className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
-                        selectedReviewId === review.id
-                          ? "border-accent bg-accent/10"
-                          : "border-border hover:border-accent/50"
-                      }`}
-                    >
-                      <p className="font-semibold text-sm">{review.studentName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(review.createdAt).toLocaleDateString("zh-TW")}
-                      </p>
-                    </button>
-                  ))}
+                <CardContent>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {reviews.map((review) => (
+                      <button
+                        key={review.id}
+                        onClick={() => handleSelectReview(review)}
+                        className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
+                          selectedReview?.id === review.id
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-300 bg-white hover:bg-gray-50"
+                        }`}
+                      >
+                        <p className="font-semibold text-gray-800">
+                          {review.studentName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(review.createdAt).toLocaleDateString("zh-TW")}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* 評語詳情 */}
+            {/* 右側：評語詳情 */}
             <div className="lg:col-span-2">
               {selectedReview ? (
-                <Card>
+                <Card className="border-2 border-gray-300 shadow-lg">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
@@ -159,187 +153,131 @@ export default function ReviewHistory() {
                           {new Date(selectedReview.createdAt).toLocaleString("zh-TW")}
                         </CardDescription>
                       </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteReview(selectedReview.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        刪除
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* 學生信息 */}
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <h4 className="font-semibold text-sm mb-2">正向特質</h4>
                         <div className="flex flex-wrap gap-2">
-                          {JSON.parse(selectedReview.positiveTraits).map(
-                            (trait: string, index: number) => (
-                              <Badge key={index} variant="secondary">
-                                {trait}
-                              </Badge>
-                            )
-                          )}
+                          {selectedReview.positiveTraits.map((trait, index) => (
+                            <Badge key={index} variant="secondary">
+                              {trait}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
 
                       <div>
                         <h4 className="font-semibold text-sm mb-2">可以改進的地方</h4>
                         <div className="flex flex-wrap gap-2">
-                          {JSON.parse(selectedReview.weaknesses).map(
-                            (weakness: string, index: number) => (
-                              <Badge key={index} variant="outline">
-                                {weakness}
-                              </Badge>
-                            )
-                          )}
+                          {selectedReview.weaknesses.map((weakness, index) => (
+                            <Badge key={index} variant="outline">
+                              {weakness}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
+                    </div>
 
+                    {selectedReview.impressivePoints && (
                       <div>
-                        <h4 className="font-semibold text-sm mb-2">令人印象深刻的地方</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {selectedReview.impressivePoints || "（未提供）"}
+                        <h4 className="font-semibold text-sm mb-2">
+                          令人印象深刻的地方
+                        </h4>
+                        <p className="text-gray-700 text-sm bg-amber-50 p-3 rounded-lg">
+                          {selectedReview.impressivePoints}
                         </p>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold text-sm mb-2">建議</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {JSON.parse(selectedReview.suggestions).map(
-                            (suggestion: string, index: number) => (
-                              <Badge key={index} variant="secondary">
-                                {suggestion}
-                              </Badge>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 生成的評語 */}
-                    <div className="border-t pt-4">
-                      <h4 className="font-semibold text-sm mb-2">生成的評語</h4>
-                      {isEditing ? (
-                        <div className="space-y-3">
-                          <Textarea
-                            value={editedReview}
-                            onChange={(e) => setEditedReview(e.target.value)}
-                            className="min-h-32"
-                            placeholder="編輯評語..."
-                          />
-                          <div className="bg-accent/10 p-3 rounded-md">
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-semibold">字數統計：</span>
-                              <span className="text-foreground font-bold">{editedReview.length}</span> 字
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="prose prose-sm max-w-none bg-card p-4 rounded-lg mb-3">
-                            <Streamdown>{selectedReview.generatedReview}</Streamdown>
-                          </div>
-                          <div className="bg-accent/10 p-3 rounded-md">
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-semibold">字數統計：</span>
-                              <span className="text-foreground font-bold">{selectedReview.generatedReview.length}</span> 字
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* 引用的名言 */}
-                    {!isEditing && JSON.parse(selectedReview.usedQuotes).length > 0 && (
-                      <div className="border-t pt-4">
-                        <h4 className="font-semibold text-sm mb-2">引用的名言</h4>
-                        <div className="space-y-2">
-                          {JSON.parse(selectedReview.usedQuotes).map(
-                            (quote: any, index: number) => (
-                              <div key={index} className="text-xs italic text-muted-foreground">
-                                <p>"{quote.text}"</p>
-                                <p className="text-right">— {quote.author}</p>
-                              </div>
-                            )
-                          )}
-                        </div>
                       </div>
                     )}
 
-                    {/* 操作按鈕 */}
-                    <div className="flex gap-2 pt-4 border-t">
-                      {isEditing ? (
-                        <>
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">建議</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedReview.suggestions.map((suggestion, index) => (
+                          <Badge key={index} variant="secondary">
+                            {suggestion}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 評語內容 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-sm">評語內容</h4>
+                        {!editingId && (
                           <Button
-                            onClick={handleSaveReview}
-                            variant="default"
-                            size="sm"
-                            className="flex-1"
-                            disabled={updateMutation.isPending}
-                          >
-                            <Save className="w-4 h-4 mr-1" />
-                            保存
-                          </Button>
-                          <Button
-                            onClick={handleCancelEdit}
                             variant="outline"
                             size="sm"
-                            className="flex-1"
-                            disabled={updateMutation.isPending}
+                            onClick={() => handleStartEdit(selectedReview)}
                           >
-                            <X className="w-4 h-4 mr-1" />
-                            取消
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            onClick={handleEditReview}
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                          >
-                            <Edit2 className="w-4 h-4 mr-1" />
+                            <Edit2 className="h-4 w-4 mr-2" />
                             編輯
                           </Button>
-                          <Button
-                            onClick={() => handleCopyReview(selectedReview.generatedReview)}
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                          >
-                            <Copy className="w-4 h-4 mr-1" />
-                            複製
-                          </Button>
-                          <Button
-                            onClick={() =>
-                              handleDownloadReview(
-                                selectedReview.studentName,
-                                selectedReview.generatedReview
-                              )
-                            }
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            下載
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteReview(selectedReview.id)}
-                            variant="destructive"
-                            size="sm"
-                            className="flex-1"
-                            disabled={deleteMutation.isPending}
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            刪除
-                          </Button>
+                        )}
+                      </div>
+
+                      {editingId === selectedReview.id ? (
+                        <div className="space-y-3">
+                          <Textarea
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            className="min-h-32"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={handleSaveEdit}
+                              className="flex-1"
+                            >
+                              <Check className="h-4 w-4 mr-2" />
+                              保存
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleCancelEdit}
+                              className="flex-1"
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              取消
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-3">
+                            <Streamdown>{selectedReview.review}</Streamdown>
+                          </div>
+                          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                            <p className="text-sm text-gray-600">
+                              字數統計：
+                              <span className="font-semibold text-blue-600">
+                                {wordCount}
+                              </span>{" "}
+                              字
+                            </p>
+                          </div>
                         </>
                       )}
                     </div>
                   </CardContent>
                 </Card>
               ) : (
-                <Card>
-                  <CardContent className="pt-12 pb-12">
-                    <p className="text-center text-muted-foreground">
-                      選擇左側的評語查看詳情
+                <Card className="border-2 border-gray-300 shadow-lg">
+                  <CardContent className="text-center py-12">
+                    <p className="text-gray-500 text-lg">
+                      選擇一份評語查看詳情
                     </p>
                   </CardContent>
                 </Card>
