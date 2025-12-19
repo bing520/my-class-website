@@ -10,6 +10,10 @@ permissions:
   pages: write
   id-token: write
 
+environment:
+  name: github-pages
+  url: ${{ steps.deployment.outputs.page_url }}
+
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -21,6 +25,9 @@ jobs:
       contents: read
       pages: write
       id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout code
@@ -35,10 +42,8 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
 
       - name: Build
         run: pnpm build
