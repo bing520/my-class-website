@@ -7,7 +7,7 @@ import { defineConfig } from "vite";
 const plugins = [react(), tailwindcss(), jsxLocPlugin()];
 
 export default defineConfig({
-  plugins,
+  plugins: [react()],
   base: "/my-class-website/",
   resolve: {
     alias: {
